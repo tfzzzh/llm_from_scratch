@@ -1,0 +1,59 @@
+base_config: "TinyStory"
+device: "cuda"              # Device: "cuda", "cpu"
+
+# Model Configuration
+model:
+  vocab_size: 10000           # vocab size for tokenizer
+  context_length: 256         # Maximum sequence length
+  num_layers: 4               # Number of transformer blocks
+  d_model: 512                # Model dimension / embedding size
+  num_heads: 16               # Number of attention heads
+  d_ff: 1344                  # Feed-forward dimension (typically 4 * d_model)
+  rope_theta: 10000.0         # RoPE theta parameter
+  eps: 1.0e-5                   # Layer norm epsilon
+  dtype: "float32"            # Model dtype: "float32", "float16", "bfloat16"
+
+# Tokenizer Configuration
+tokenizer:
+  tokenizer_path: "tokenizer_10000.pkl"  # Path to save/load tokenizer
+
+# Data Configuration
+data:
+  train_data_path: "data/TinyStoriesV2-GPT4-train.npy"    # Memory-mapped training data
+  # val_data_path: "data/TinyStoriesV2-GPT4-valid.npy"        # Memory-mapped validation data
+  batch_size: 32                              # Training batch size
+  # eval_batch_size: 64                         # Evaluation batch size
+  # num_workers: 4                              # DataLoader workers
+
+# Training Configuration
+training:
+  max_steps: 100000           # Maximum training steps
+  eval_interval: 1000         # Steps between evaluations
+  save_interval: 5000         # Steps between checkpoints
+  log_interval: 100           # Steps between logging
+  grad_clip_norm: 1.0         # Gradient clipping max norm
+  
+
+# Optimizer Configuration
+optimizer:
+  type: "adamw"               # Optimizer type: "sgd", "adamw"
+  lr: 3.0e-4                    # Learning rate
+  weight_decay: 0.1           # Weight decay
+  betas: [0.9, 0.95]         # Adam betas
+  eps: 1.0e-8                   # Adam epsilon
+
+# Learning Rate Scheduler Configuration
+scheduler:
+  type: "cosine_annealing"    # Scheduler type
+  lr_min: 3.0e-5                # Minimum learning rate
+  lr_max: 3.0e-4                # Maximum learning rate  
+  warm_up_steps: 2000         # Warmup steps
+  cosin_ann_steps: 90000  # Total annealing steps
+
+checkpointing:
+  checkpoint_dir: "outputs/checkpoints"        # Directory to save checkpoints
+  checkpoint_per_step: 1000                    # when steps % checkpoint_per_step == 0 perform checkpoint
+  resume_from: null                   # Path to checkpoint to resume from
+
+logger:
+  log_dir: "outputs/tensorboard"
