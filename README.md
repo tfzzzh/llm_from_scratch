@@ -2,12 +2,13 @@
 This repository implement a Llamma2 like Large Language Model (LLM) from scratch using only basic functionality of Python and PyTorch. This project serves as an educational implementation to understand the core components of modern transformer-based language models.
 
 ## Implemented Components
-+ **BPE Tokenizer** - Byte Pair Encoding tokenizer for text preprocessing - see [`tokenizer.py`](tokenizer.py)
-+ **Llama2-like Transformer Model** - Transformer architecture - see [`model.py`](model.py)
-+ **AdamW Optimizer** - Weight decay regularized Adam optimizer - see [`optimizer.py`](optimizer.py)
-+ **Cosine Annealed Learning Rate Scheduler** - Learning rate scheduling - see [`lr_scheduler.py`](lr_scheduler.py)
-+ **Training Framework** - Complete training loop with logging and checkpoint management - see [`trainer.py`](trainer.py)
-+ **Data Utilities** - DataLoader - see [`utility.py`](utility.py)
++ **BPE Tokenizer** - Byte Pair Encoding tokenizer for text preprocessing - see [`tokenizer.py`](llm/tokenizer.py)
++ **Llama2-like Transformer Model** - Transformer architecture - see [`layers.py`](llm/layers.py)
++ **Flash Attention 2** - Flash Attention via Triton - see [`flash_attention.py`](llm/flash_attention.py)
++ **AdamW Optimizer** - Weight decay regularized Adam optimizer - see [`optimizer.py`](llm/optimizer.py)
++ **Cosine Annealed Learning Rate Scheduler** - Learning rate scheduling - see [`lr_scheduler.py`](llm/lr_scheduler.py)
++ **Training Framework** - Complete training loop with logging and checkpoint management - see [`trainer.py`](llm/trainer.py)
++ **Data Utilities** - DataLoader - see [`utility.py`](llm/utility.py)
 
 ## Prerequisites
 - Python 3.12
@@ -76,3 +77,4 @@ Then navigate to http://localhost:6006 in your browser to view:
 - [Attention Is All You Need](https://arxiv.org/abs/1706.03762) - Original Transformer paper
 - [Llama 2: Open Foundation and Fine-Tuned Chat Models](https://arxiv.org/abs/2307.09288)
 - [TinyStories Dataset](https://huggingface.co/datasets/roneneldan/TinyStories)
+- [Flash Attention2](https://arxiv.org/abs/2307.08691)

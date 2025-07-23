@@ -8,4 +8,6 @@ def main():
     trainer.train()
 
 if __name__ == '__main__':
+    # not use flash attention: 1.5
+    # use flash attention 1.73
     main()

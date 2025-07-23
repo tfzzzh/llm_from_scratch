@@ -27,7 +27,17 @@ def load_tokenizer(config):
 
 
 def make_train_dataloader(config):
-    dataset = np.load(config["data"]["train_data_path"], mmap_mode="r")
+    if config['data']['type'] == 'random':
+        data_len = config['data']['dataset_size']
+        num_vocab = config['model']['vocab_size']
+        dataset = np.random.randint(0, num_vocab, size=data_len, dtype=np.int64)
+
+    elif config['data']['type'] == 'numpy_data':
+        dataset = np.load(config["data"]["train_data_path"], mmap_mode="r")
+        
+    else:
+        raise NotImplementedError
+    
     loader = DataLoader(
         dataset,
         batch_size=config["data"]["batch_size"],
@@ -54,6 +64,8 @@ def make_model(config):
     model_config["dtype"] = dtype
 
     model = TransformerLM(**model_config)
+
+    model.to(model_config["device"])
 
     return model
 

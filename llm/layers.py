@@ -2,6 +2,7 @@ from typing import Optional
 import torch
 from torch import nn
 import math
+from .flash_attention import _scaled_dot_product_flash_attention
 
 
 class Linear(nn.Module):
@@ -114,7 +115,8 @@ class RMSNorm(nn.Module):
         square_avg = (x * x).mean(dim=-1, keepdim=True)
         dividor = torch.sqrt(self.eps + square_avg)
         dividor = dividor.to(oldtype)
-
+        x = x.to(oldtype)
+        
         out = self._scale * (x / dividor)
 
         return out
@@ -237,8 +239,8 @@ class RotaryPositionalEmbedding(nn.Module):
         sines = self.sines[token_positions]
 
         # make coses and sines same type with x
-        coses.to(x.dtype)
-        sines.to(x.dtype)
+        coses = coses.to(x.dtype)
+        sines = sines.to(x.dtype)
 
         # compute even lines each of form: [x0 c0 - x1 s0 ... ]
         x_even = x[:, 0:d_k:2]
@@ -262,7 +264,7 @@ class RotaryPositionalEmbedding(nn.Module):
         return out
 
 
-def scaled_dot_product_attention(
+def _scaled_dot_product_attention(
     Q: torch.Tensor,
     K: torch.Tensor,
     V: torch.Tensor,
@@ -317,6 +319,33 @@ def scaled_dot_product_attention(
 
     return out
 
+def scaled_dot_product_attention(
+    Q: torch.Tensor,
+    K: torch.Tensor,
+    V: torch.Tensor,
+    mask: Optional[torch.Tensor] = None,
+    use_flash_attention: bool = False,
+) -> torch.Tensor:
+    """scaled dot-product attention function
+
+    Args:
+        Q (torch.Tensor): shape (batch_size, ..., seq_len_q, d_k)
+        K (torch.Tensor): shape (batch_size, ..., seq_len_k, d_k)
+        V (torch.Tensor): shape (batch_size, ..., seq_len_k, d_v)
+        mask (torch.Tensor): shape (batch_size, ..., seq_len, seq_len), when set to true attention applied
+
+    Returns:
+        torch.Tensor: _description_
+    """
+    if not use_flash_attention:
+        out = _scaled_dot_product_attention(Q, K, V, mask)
+    
+    else:
+        is_casual = mask is not None
+        out = _scaled_dot_product_flash_attention(Q, K, V, is_casual)
+
+    return out
+
 
 # TODO: add dropout
 class MultiheadSelfAttention(nn.Module):
@@ -328,6 +357,7 @@ class MultiheadSelfAttention(nn.Module):
         device: Optional[torch.device] = None,
         dtype: Optional[torch.dtype] = None,
         rope_module: Optional[RotaryPositionalEmbedding] = None,
+        use_flash_attention: bool = False,
     ):
         assert d_model % num_heads == 0
 
@@ -353,6 +383,7 @@ class MultiheadSelfAttention(nn.Module):
         self.dtype = dtype
         self.max_seq_len = max_seq_len
         self.rope_module = rope_module
+        self.use_flash_attention = use_flash_attention
 
     def forward(
         self, x: torch.Tensor, token_positions: Optional[torch.Tensor] = None
@@ -402,7 +433,7 @@ class MultiheadSelfAttention(nn.Module):
 
         # apply attention
         O = scaled_dot_product_attention(
-            Q, K, V, mask
+            Q, K, V, mask, use_flash_attention=self.use_flash_attention
         )  # [batch_size, num_heads, seq_len, d_hidden]
 
         # apply projection
@@ -433,12 +464,13 @@ class TransformerBlock(nn.Module):
         eps: float = 0.00001,
         rope_module: Optional[RotaryPositionalEmbedding] = None,
         device: Optional[torch.device] = None,
-        dtype: Optional[torch.dtype] = None
+        dtype: Optional[torch.dtype] = None,
+        use_flash_attention: bool = False,
     ):
         super().__init__()
 
         self.rmsnorm1 = RMSNorm(d_model, eps, device, dtype)
-        self.attention = MultiheadSelfAttention(d_model, num_heads, max_seq_len, device=device, dtype=dtype, rope_module=rope_module)
+        self.attention = MultiheadSelfAttention(d_model, num_heads, max_seq_len, device=device, dtype=dtype, rope_module=rope_module, use_flash_attention=use_flash_attention)
         self.rmsnorm2 = RMSNorm(d_model, eps, device, dtype)
         self.swiglu = SwiGLU(d_model, d_ff, device, dtype)
 
@@ -450,6 +482,7 @@ class TransformerBlock(nn.Module):
         self.eps = eps
         self.device = device
         self.dtype = dtype
+        self.use_flash_attention = use_flash_attention
 
     def forward(self, x : torch.Tensor) -> torch.Tensor:
         """
@@ -478,7 +511,8 @@ class TransformerLM(nn.Module):
         rope_theta: float,
         eps: float = 0.00001,
         device: Optional[torch.device] = None,
-        dtype: Optional[torch.dtype] = None
+        dtype: Optional[torch.dtype] = None,
+        use_flash_attention: bool = False
     ):
         """
 
@@ -500,7 +534,7 @@ class TransformerLM(nn.Module):
         self.rope = RotaryPositionalEmbedding(rope_theta, d_model // num_heads, context_length, device)
         
         # store blocks in list
-        blocks = [TransformerBlock(d_model, num_heads, d_ff, context_length, eps, self.rope, device, dtype) for i in range(num_layers)]
+        blocks = [TransformerBlock(d_model, num_heads, d_ff, context_length, eps, self.rope, device, dtype, use_flash_attention) for i in range(num_layers)]
         self.blocks = nn.ModuleList(blocks)
 
         self.head_norm = RMSNorm(d_model, eps, device, dtype)
