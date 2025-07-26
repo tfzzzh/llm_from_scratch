@@ -5,6 +5,7 @@ This repository implement a Llamma2 like Large Language Model (LLM) from scratch
 + **BPE Tokenizer** - Byte Pair Encoding tokenizer for text preprocessing - see [`tokenizer.py`](llm/tokenizer.py)
 + **Llama2-like Transformer Model** - Transformer architecture - see [`layers.py`](llm/layers.py)
 + **Flash Attention 2** - Flash Attention via Triton - see [`flash_attention.py`](llm/flash_attention.py)
++ **Data Parallel Distributed Training** - Partition data across processors, use all-reduce to synchronize gradients - see[`data_parallel_wrap.py`](llm/data_parallel_wrap.py)
 + **AdamW Optimizer** - Weight decay regularized Adam optimizer - see [`optimizer.py`](llm/optimizer.py)
 + **Cosine Annealed Learning Rate Scheduler** - Learning rate scheduling - see [`lr_scheduler.py`](llm/lr_scheduler.py)
 + **Training Framework** - Complete training loop with logging and checkpoint management - see [`trainer.py`](llm/trainer.py)

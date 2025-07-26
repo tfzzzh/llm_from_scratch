@@ -695,3 +695,95 @@ def run_train_bpe(
     #     if merges[i] == (b"\xc3\xa2", b"\xc2\x80"):
     #         merges[i] = (b"\xe2", b"\x80")
     return vocab, merges 
+
+
+def get_ddp_individual_parameters(module: torch.nn.Module) -> torch.nn.Module:
+    """
+    Returns a torch.nn.Module container that handles
+    parameter broadcasting and gradient synchronization for
+    distributed data parallel training.
+
+    This container should overlaps communication with backprop computation
+    by asynchronously communicating gradients as they are ready
+    in the backward pass. The gradient for each parameter tensor
+    is individually communicated.
+
+    Args:
+        module: torch.nn.Module
+            Underlying model to wrap with DDP.
+    Returns:
+        Instance of a DDP class.
+    """
+    # For example: return DDPIndividualParameters(module)
+    # raise NotImplementedError
+    from llm.data_parallel_wrap import DataParallelReduceInterleaved
+
+    class DataParallelTmp(DataParallelReduceInterleaved):
+        def __init__(self, model):
+            super().__init__(module=model, module_dtype=torch.float32, process_group=None)
+
+    return DataParallelTmp(module)
+
+
+def ddp_individual_parameters_on_after_backward(ddp_model: torch.nn.Module, optimizer: torch.optim.Optimizer):
+    """
+    Code to run after the backward pass is completed, but before we take
+    an optimizer step.
+
+    Args:
+        ddp_model: torch.nn.Module
+            DDP-wrapped model.
+        optimizer: torch.optim.Optimizer
+            Optimizer being used with the DDP-wrapped model.
+    """
+    return ddp_model.finish_gradient_synchronization()
+
+
+def get_ddp_bucketed(module: torch.nn.Module, bucket_size_mb: float) -> torch.nn.Module:
+    """
+    Returns a torch.nn.Module container that handles
+    parameter broadcasting and gradient synchronization for
+    distributed data parallel training.
+
+    This container should overlaps communication with backprop computation
+    by asynchronously communicating buckets of gradients as they are ready
+    in the backward pass.
+
+    Args:
+        module: torch.nn.Module
+            Underlying model to wrap with DDP.
+        bucket_size_mb: The bucket size, in megabytes. If None, use a single
+            bucket of unbounded size.
+    Returns:
+        Instance of a DDP class.
+    """
+    from llm.data_parallel_wrap import DataParallelBucket
+    return DataParallelBucket(module, torch.float32, None, bucket_size_mb, torch.float32)
+
+
+def ddp_bucketed_on_after_backward(ddp_model: torch.nn.Module, optimizer: torch.optim.Optimizer):
+    """
+    Code to run after the backward pass is completed, but before we take
+    an optimizer step.
+
+    Args:
+        ddp_model: torch.nn.Module
+            DDP-wrapped model.
+        optimizer: torch.optim.Optimizer
+            Optimizer being used with the DDP-wrapped model.
+    """
+    # For example: ddp_model.finish_gradient_synchronization()
+    ddp_model.finish_gradient_synchronization()
+
+
+def ddp_bucketed_on_train_batch_start(ddp_model: torch.nn.Module, optimizer: torch.optim.Optimizer):
+    """
+    Code to run at the very start of the training step.
+
+    Args:
+        ddp_model: torch.nn.Module
+            DDP-wrapped model.
+        optimizer: torch.optim.Optimizer
+            Optimizer being used with the DDP-wrapped model.
+    """
+    return

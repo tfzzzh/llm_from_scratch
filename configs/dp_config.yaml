@@ -1,0 +1,76 @@
+base_config: "DataParallelBasicConfig"
+device: "cpu"              # Device: "cuda", "cpu"
+seed: 123
+
+# distributed config
+distributed:
+  world_size: 2
+  MASTER_ADDR: "localhost"
+  MASTER_PORT: "29500"
+  backend: "gloo"
+  omp_num_threads: "1"
+
+# Model Configuration
+model:
+  vocab_size: 10000           # vocab size for tokenizer
+  context_length: 256         # Maximum sequence length
+  num_layers: 4               # Number of transformer blocks
+  d_model: 512                # Model dimension / embedding size
+  num_heads: 16               # Number of attention heads
+  d_ff: 1344                  # Feed-forward dimension (typically 4 * d_model)
+  rope_theta: 10000.0         # RoPE theta parameter
+  eps: 1.0e-5                   # Layer norm epsilon
+  dtype: "float32"            # Model dtype: "float32", "float16", "bfloat16"
+  use_flash_attention: False  # use customize implemented flash attention or not
+
+# Tokenizer Configuration
+tokenizer:
+  tokenizer_path: "tokenizer_10000.pkl"  # Path to save/load tokenizer
+
+# Data Configuration
+data:
+  type: "numpy_data"
+  train_data_path: "data/TinyStoriesV2-GPT4-train.npy"    # Memory-mapped training data
+  # val_data_path: "data/TinyStoriesV2-GPT4-valid.npy"        # Memory-mapped validation data
+  batch_size: 32                              # Training batch size
+  # eval_batch_size: 64                         # Evaluation batch size
+  # num_workers: 4                              # DataLoader workers
+
+# Training Configuration
+training:
+  max_steps: 100000           # Maximum training steps
+  eval_interval: 1000         # Steps between evaluations
+  save_interval: 5000         # Steps between checkpoints
+  log_interval: 100           # Steps between logging
+  grad_clip_norm: 1.0         # Gradient clipping max norm
+  
+
+# Optimizer Configuration
+optimizer:
+  type: "adamw"               # Optimizer type: "sgd", "adamw"
+  lr: 3.0e-4                    # Learning rate
+  weight_decay: 0.1           # Weight decay
+  betas: [0.9, 0.95]         # Adam betas
+  eps: 1.0e-8                   # Adam epsilon
+
+# Data Parallel Wrap
+dp_wrap:
+  type: "DataParallelBucket"  # DataParallelBucket or DataParallelReduceInterleaved
+  bucket_size_mb: 32.0        # float
+  grad_type: "float32"        # use float32
+
+# Learning Rate Scheduler Configuration
+scheduler:
+  type: "cosine_annealing"    # Scheduler type
+  lr_min: 3.0e-5                # Minimum learning rate
+  lr_max: 3.0e-4                # Maximum learning rate  
+  warm_up_steps: 2000         # Warmup steps
+  cosin_ann_steps: 90000  # Total annealing steps
+
+checkpointing:
+  checkpoint_dir: "outputs/checkpoints"        # Directory to save checkpoints
+  checkpoint_per_step: 1000                    # when steps % checkpoint_per_step == 0 perform checkpoint
+  resume_from: null                   # Path to checkpoint to resume from
+
+logger:
+  log_dir: "outputs/tensorboard"

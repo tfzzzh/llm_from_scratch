@@ -7,6 +7,7 @@ from .utility import DataLoader
 from .layers import TransformerLM
 from .optimizer import AdamW
 from .lr_scheduler import CosineAnnealLR
+from .data_parallel_wrap import DataParallelBucket, DataParallelReduceInterleaved
 
 
 def read_config(config_file: str) -> dict:
@@ -51,7 +52,14 @@ def make_model(config):
     model_config = {**config["model"]}
     model_config["device"] = config["device"]
 
-    dtype = model_config["dtype"]
+    dtype = _resolve_dtype(model_config['dtype'])
+    model_config["dtype"] = dtype
+    model = TransformerLM(**model_config)
+    model.to(model_config["device"])
+
+    return model
+
+def _resolve_dtype(dtype):
     if dtype == "float32":
         dtype = torch.float32
 
@@ -60,14 +68,8 @@ def make_model(config):
 
     else:
         raise NotImplementedError
-
-    model_config["dtype"] = dtype
-
-    model = TransformerLM(**model_config)
-
-    model.to(model_config["device"])
-
-    return model
+    
+    return dtype
 
 
 def make_optimizer(params, config):
@@ -93,3 +95,18 @@ def make_schedule(optimizer, config):
         cosin_ann_steps=scheduler_config["cosin_ann_steps"],
     )
     return scheduler
+
+
+def make_dp_wrap(model, config):
+    model_dtype = _resolve_dtype(config['model']['dtype'])
+    wrap_type = config['dp_wrap']['type']
+    if wrap_type == 'DataParallelBucket':
+        bucket_size_mb = config['dp_wrap']['bucket_size_mb']
+        grad_type = _resolve_dtype(config['dp_wrap']['grad_type'])
+        return DataParallelBucket(model, model_dtype, None, bucket_size_mb, grad_type)
+
+    elif wrap_type == 'DataParallelReduceInterleaved':
+        return DataParallelReduceInterleaved(model, model_dtype, None)
+
+    else:
+        raise NotImplementedError
