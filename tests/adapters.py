@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import IO, Any, BinaryIO
+from typing import IO, Any, BinaryIO, Type
 from collections.abc import Iterable
 from jaxtyping import Float, Int
 
@@ -787,3 +787,23 @@ def ddp_bucketed_on_train_batch_start(ddp_model: torch.nn.Module, optimizer: tor
             Optimizer being used with the DDP-wrapped model.
     """
     return
+
+
+def get_sharded_optimizer(params, optimizer_cls: Type[torch.optim.Optimizer], **kwargs) -> torch.optim.Optimizer:
+    """
+    Returns a torch.optim.Optimizer that handles optimizer state sharding
+    of the given optimizer_cls on the provided parameters.
+
+    Arguments:
+        params (``Iterable``): an ``Iterable`` of :class:`torch.Tensor` s
+            or :class:`dict` s giving all parameters, which will be sharded
+            across ranks.
+        optimizer_class (:class:`torch.nn.Optimizer`): the class of the local
+            optimizer.
+    Keyword arguments:
+        kwargs: keyword arguments to be forwarded to the optimizer constructor.
+    Returns:
+        Instance of sharded optimizer.
+    """
+    from llm.optimizer import Zero
+    return Zero(params, None, optimizer_cls, **kwargs)
