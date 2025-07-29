@@ -1,5 +1,14 @@
-base_config: "TinyStory"
-device: "cuda"              # Device: "cuda", "cpu"
+base_config: "ZeroBasicConfig"
+device: "cpu"              # Device: "cuda", "cpu"
+seed: 123
+
+# distributed config
+distributed:
+  world_size: 2
+  MASTER_ADDR: "localhost"
+  MASTER_PORT: "29500"
+  backend: "gloo"
+  omp_num_threads: "1"
 
 # Model Configuration
 model:
@@ -12,7 +21,7 @@ model:
   rope_theta: 10000.0         # RoPE theta parameter
   eps: 1.0e-5                   # Layer norm epsilon
   dtype: "float32"            # Model dtype: "float32", "float16", "bfloat16"
-  use_flash_attention: True  # use customize implemented flash attention or not
+  use_flash_attention: False  # use customize implemented flash attention or not
 
 # Tokenizer Configuration
 tokenizer:
@@ -38,11 +47,14 @@ training:
 
 # Optimizer Configuration
 optimizer:
-  type: "AdamW"               # Optimizer type: "sgd", "adamw"
-  lr: 3.0e-4                    # Learning rate
-  weight_decay: 0.1           # Weight decay
-  betas: [0.9, 0.95]         # Adam betas
-  eps: 1.0e-8                   # Adam epsilon
+  type: "Zero"               
+  inner_optimizer:
+    type: "AdamW"
+    lr: 3.0e-4                    # Learning rate
+    weight_decay: 0.1           # Weight decay
+    betas: [0.9, 0.95]         # Adam betas
+    eps: 1.0e-8                   # Adam epsilon
+
 
 # Learning Rate Scheduler Configuration
 scheduler:

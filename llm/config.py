@@ -1,13 +1,16 @@
+import os
 import yaml
 import numpy as np
 import torch
 import copy
+import time
 from .tokenizer import Tokenizer
 from .utility import DataLoader
 from .layers import TransformerLM
-from .optimizer import AdamW
+from .optimizer import AdamW, SGD, Zero
 from .lr_scheduler import CosineAnnealLR
 from .data_parallel_wrap import DataParallelBucket, DataParallelReduceInterleaved
+from .logger import Logger
 
 
 def read_config(config_file: str) -> dict:
@@ -74,13 +77,32 @@ def _resolve_dtype(dtype):
 
 def make_optimizer(params, config):
     opt_config = config["optimizer"]
-    optimizer = AdamW(
-        params,
-        lr=opt_config["lr"],
-        weight_decay=opt_config["weight_decay"],
-        betas=tuple(opt_config["betas"]),
-        eps=opt_config["eps"],
-    )
+    opt_type = config['optimizer']['type']
+    if opt_type == 'AdamW':
+        optimizer = AdamW(
+            params,
+            lr=opt_config["lr"],
+            weight_decay=opt_config["weight_decay"],
+            betas=tuple(opt_config["betas"]),
+            eps=opt_config["eps"],
+        )
+
+    elif opt_type == 'Zero':
+        inner_opt_config = opt_config['inner_optimizer']
+        assert inner_opt_config['type'] == 'AdamW'
+        inner_opt_kwargs = {
+            'lr': inner_opt_config['lr'],
+            'weight_decay': inner_opt_config['weight_decay'],
+            'betas': tuple(inner_opt_config['betas']),
+            'eps': inner_opt_config['eps']
+        }
+        optimizer = Zero(
+            params, None, AdamW, **inner_opt_kwargs
+        )
+
+    else:
+        raise NotImplementedError(f"optimizer {opt_type} not implemented")
+    
     return optimizer
 
 
@@ -110,3 +132,17 @@ def make_dp_wrap(model, config):
 
     else:
         raise NotImplementedError
+    
+def make_tensorboard_logger(config):
+    log_dir = config['logger']['log_dir']
+    if not (os.path.exists(log_dir)):
+        os.makedirs(log_dir)
+
+    log_string = f"{config['base_config']}_opt{config['optimizer']['type']}_dim{config['model']['d_model']}"
+    log_string += "_" + time.strftime("%d-%m-%Y_%H-%M-%S")
+
+    logdir = os.path.join(log_dir, log_string)
+    if not (os.path.exists(logdir)):
+        os.makedirs(logdir)
+
+    return Logger(logdir)
