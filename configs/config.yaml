@@ -46,7 +46,7 @@ optimizer:
 
 # Learning Rate Scheduler Configuration
 scheduler:
-  type: "cosine_annealing"    # Scheduler type
+  type: "CosineAnnealLR"    # Scheduler type
   lr_min: 3.0e-5                # Minimum learning rate
   lr_max: 3.0e-4                # Maximum learning rate  
   warm_up_steps: 2000         # Warmup steps

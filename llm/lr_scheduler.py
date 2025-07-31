@@ -91,3 +91,39 @@ class CosineAnnealLR(_LRScheduler):
         
     #     # Load base scheduler state
     #     super().load_state_dict(state_dict)
+
+
+class MuonScheduler(_LRScheduler):
+    def __init__(self, optimizer: Optimizer, num_iterations:int, cooldown_frac:float = 0.4,last_epoch: int = -1):
+        # bookmark initial lr
+        self.initial_lrs = []
+        for group in optimizer.param_groups:
+            self.initial_lrs.append(group['lr'])
+
+        self.num_iterations = num_iterations
+        self.cooldown_frac = cooldown_frac
+
+        # !!! must be here
+        super().__init__(optimizer, last_epoch)
+
+
+    @staticmethod
+    def _get_lr_scale(step, num_iterations, cooldown_frac):
+        x = step / num_iterations
+        assert 0.0 <= x <= 1.0
+
+        if x < 1 - cooldown_frac:
+            return 1.0
+    
+        else:
+            w = (1 - x) / cooldown_frac
+            return w * 1.0 + (1 - w) * 0.1
+        
+    def get_lr(self):
+        scale = MuonScheduler._get_lr_scale(
+            self.last_epoch + 1,
+            self.num_iterations,
+            self.cooldown_frac
+        )
+
+        return [lr_init * scale for lr_init in self.initial_lrs]

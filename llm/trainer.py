@@ -21,6 +21,7 @@ from .utility import save_checkpoint
 from .logger import Logger
 from .data_parallel_wrap import DataParallel
 from .optimizer import Zero
+from .lr_scheduler import MuonScheduler
 
 
 class Trainer:
@@ -32,7 +33,7 @@ class Trainer:
         self.model.to(config["device"])
 
         self.tokenizer = load_tokenizer(config)
-        self.optimizer = make_optimizer(self.model.parameters(), config)
+        self.optimizer = make_optimizer(self.model.parameters(), config, self.model)
         self.scheduler = make_schedule(self.optimizer, config)
         self.train_dataloader = make_train_dataloader(config)
 
@@ -70,8 +71,15 @@ class Trainer:
             infos = {
                 'loss': loss.item(),
                 'grad_norm': grad_norm.item(),
-                'lr': self.scheduler.get_last_lr()
+                # 'lr': self.scheduler.get_last_lr()
             }
+            
+            if isinstance(self.scheduler, MuonScheduler):
+                infos['lr/muon'] = self.scheduler.get_last_lr()[0]
+                infos['lr/adam'] = self.scheduler.get_last_lr()[1]
+            
+            else:
+                infos['lr'] = self.scheduler.get_last_lr()[0]
 
             self.logger.log_metrics(infos, step)
 

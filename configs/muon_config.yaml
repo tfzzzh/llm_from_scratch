@@ -1,14 +1,5 @@
-base_config: "DataParallelBasicConfig"
-device: "cpu"              # Device: "cuda", "cpu"
-seed: 123
-
-# distributed config
-distributed:
-  world_size: 2
-  MASTER_ADDR: "localhost"
-  MASTER_PORT: "29500"
-  backend: "gloo"
-  omp_num_threads: "1"
+base_config: "TinyStory"
+device: "cuda"              # Device: "cuda", "cpu"
 
 # Model Configuration
 model:
@@ -21,7 +12,7 @@ model:
   rope_theta: 10000.0         # RoPE theta parameter
   eps: 1.0e-5                   # Layer norm epsilon
   dtype: "float32"            # Model dtype: "float32", "float16", "bfloat16"
-  use_flash_attention: False  # use customize implemented flash attention or not
+  use_flash_attention: True  # use customize implemented flash attention or not
 
 # Tokenizer Configuration
 tokenizer:
@@ -47,25 +38,19 @@ training:
 
 # Optimizer Configuration
 optimizer:
-  type: "AdamW"               # Optimizer type: "sgd", "adamw"
-  lr: 3.0e-4                    # Learning rate
-  weight_decay: 0.1           # Weight decay
-  betas: [0.9, 0.95]         # Adam betas
-  eps: 1.0e-8                   # Adam epsilon
-
-# Data Parallel Wrap
-dp_wrap:
-  type: "DataParallelBucket"  # DataParallelBucket or DataParallelReduceInterleaved
-  bucket_size_mb: 32.0        # float
-  grad_type: "float32"        # use float32
+  type: "Muon"               
+  lr_muon: 0.02                  # Learning rate of muon
+  beta_muon: 0.95                 # beta of muon
+  lr_adam: 3.0e-4                 # Learning rate of adam for 1-d parameters
+  betas: [0.9, 0.95]            # Adam betas
+  eps: 1.0e-10                   # Adam epsilon
+  ns_steps: 5
+  weight_decay: 0.0
 
 # Learning Rate Scheduler Configuration
 scheduler:
-  type: "CosineAnnealLR"    # Scheduler type
-  lr_min: 3.0e-5                # Minimum learning rate
-  lr_max: 3.0e-4                # Maximum learning rate  
-  warm_up_steps: 2000         # Warmup steps
-  cosin_ann_steps: 90000  # Total annealing steps
+  type: "MuonScheduler"    # Scheduler type
+  cooldown_frac: 0.4
 
 checkpointing:
   checkpoint_dir: "outputs/checkpoints"        # Directory to save checkpoints

@@ -7,7 +7,8 @@ This repository implement a Llamma2 like Large Language Model (LLM) from scratch
 + **Flash Attention 2** - Flash Attention via Triton - see [`flash_attention.py`](llm/flash_attention.py)
 + **Data Parallel Distributed Training** - Partition data across processors, use all-reduce to synchronize gradients - see[`data_parallel_wrap.py`](llm/data_parallel_wrap.py)
 + **AdamW Optimizer** - Weight decay regularized Adam optimizer - see [`adamw.py`](llm/optimizer/adamw.py)
-+ **Zero 1** - Distributed Optimizer which partition optimizer's inner state across nodes - see [`zero.py`](llm/optimizer/zero.py)
++ **Muon Optimizer** - Muon is a brandly new optimizer for hidden layers of neuron networks - see [`muon.py`](llm/optimizer/muon.py)
++ **Zero-1** - Distributed Optimizer which partition optimizer's inner state across nodes - see [`zero.py`](llm/optimizer/zero.py)
 + **Cosine Annealed Learning Rate Scheduler** - Learning rate scheduling - see [`lr_scheduler.py`](llm/lr_scheduler.py)
 + **Training Framework** - Complete training loop with logging and checkpoint management - see [`trainer.py`](llm/trainer.py)
 + **Data Utilities** - DataLoader - see [`utility.py`](llm/utility.py)
@@ -21,8 +22,8 @@ This repository implement a Llamma2 like Large Language Model (LLM) from scratch
 
 ### Installation and Testing
 1. **Clone this repository** 
-```bash
-git clone <repository-url>
+```sh
+git clone https://github.com/tfzzzh/llm_from_scratch.git
 cd llm_from_scratch
 ```
 2. **Install uv package manager**
@@ -46,7 +47,7 @@ wget https://huggingface.co/datasets/roneneldan/TinyStories/resolve/main/TinySto
 cd ..
 ```
 ### Train Tokenizer and Preprocess Data
-```python
+```sh
 uv run python scripts/prepare_dataset.py
 ```
 **Note:** Depending on your hardware, this script may take approximately 30 minutes to complete. Upon completion, you'll have:
@@ -54,8 +55,18 @@ uv run python scripts/prepare_dataset.py
 - Tokenized training and validation datasets
 ## Training the Model
 ### Start Training
-```python
-uv run python scripts/train_llm.py
+```shell
+# train LLM via Adam
+uv run python scripts/train_llm.py --config_file ./configs/config.yaml
+
+# train LLM via Muon
+# uv run python scripts/train_llm.py --config_file ./configs/muon_config.yaml
+
+# train LLM via Data Parallel
+# uv run python scripts/data_parallel_train.py
+
+# train LLM via Zero-1 Parallel
+# uv run python scripts/zero_train.py
 ```
 ## Monitor Training Process
 Launch TensorBoard to visualize training metrics in real-time:
@@ -81,3 +92,4 @@ Then navigate to http://localhost:6006 in your browser to view:
 - [TinyStories Dataset](https://huggingface.co/datasets/roneneldan/TinyStories)
 - [Flash Attention2](https://arxiv.org/abs/2307.08691)
 - [ZeRO: Memory Optimizations Toward Training Trillion Parameter Models](https://arxiv.org/abs/1910.02054)
+- [Muon: An optimizer for hidden layers in neural networks](https://kellerjordan.github.io/posts/muon/)

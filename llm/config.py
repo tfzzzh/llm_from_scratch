@@ -7,8 +7,8 @@ import time
 from .tokenizer import Tokenizer
 from .utility import DataLoader
 from .layers import TransformerLM
-from .optimizer import AdamW, SGD, Zero
-from .lr_scheduler import CosineAnnealLR
+from .optimizer import AdamW, SGD, Zero, Muon
+from .lr_scheduler import CosineAnnealLR, MuonScheduler
 from .data_parallel_wrap import DataParallelBucket, DataParallelReduceInterleaved
 from .logger import Logger
 
@@ -75,7 +75,7 @@ def _resolve_dtype(dtype):
     return dtype
 
 
-def make_optimizer(params, config):
+def make_optimizer(params, config, model=None):
     opt_config = config["optimizer"]
     opt_type = config['optimizer']['type']
     if opt_type == 'AdamW':
@@ -85,6 +85,23 @@ def make_optimizer(params, config):
             weight_decay=opt_config["weight_decay"],
             betas=tuple(opt_config["betas"]),
             eps=opt_config["eps"],
+        )
+
+    elif opt_type == "Muon":
+        assert model is not None
+        mueon_weights = [p for p in model.blocks.parameters() if p.ndim >= 2]
+        mueon_weights_set = set(mueon_weights)
+        adam_weights = [p for p in model.parameters() if p not in mueon_weights_set]
+        optimizer = Muon(
+            mueon_weights,
+            adam_weights,
+            lr_muon=opt_config['lr_muon'],
+            beta_muon=opt_config['beta_muon'],
+            lr_adam=opt_config['lr_adam'],
+            betas=tuple(opt_config['betas']),
+            eps=opt_config['eps'],
+            ns_steps=opt_config['ns_steps'],
+            weight_decay=opt_config['weight_decay']
         )
 
     elif opt_type == 'Zero':
@@ -108,14 +125,24 @@ def make_optimizer(params, config):
 
 def make_schedule(optimizer, config):
     scheduler_config = copy.deepcopy(config["scheduler"])
-    assert scheduler_config["type"] == "cosine_annealing"
-    scheduler = CosineAnnealLR(
-        optimizer,
-        lr_min=scheduler_config["lr_min"],
-        lr_max=scheduler_config["lr_max"],
-        warm_up_steps=scheduler_config["warm_up_steps"],
-        cosin_ann_steps=scheduler_config["cosin_ann_steps"],
-    )
+    if scheduler_config["type"] == "CosineAnnealLR":
+        scheduler = CosineAnnealLR(
+            optimizer,
+            lr_min=scheduler_config["lr_min"],
+            lr_max=scheduler_config["lr_max"],
+            warm_up_steps=scheduler_config["warm_up_steps"],
+            cosin_ann_steps=scheduler_config["cosin_ann_steps"],
+        )
+
+    elif scheduler_config["type"] == "MuonScheduler":
+        scheduler = MuonScheduler(
+            optimizer,
+            num_iterations=config['training']['max_steps'],
+            cooldown_frac=scheduler_config['cooldown_frac']
+        )
+
+    else:
+        raise NotImplementedError
     return scheduler
 
 
