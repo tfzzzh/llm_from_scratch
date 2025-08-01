@@ -31,7 +31,6 @@ data:
 training:
   max_steps: 100000           # Maximum training steps
   eval_interval: 1000         # Steps between evaluations
-  save_interval: 5000         # Steps between checkpoints
   log_interval: 100           # Steps between logging
   grad_clip_norm: 1.0         # Gradient clipping max norm
   

@@ -80,10 +80,15 @@ Then navigate to http://localhost:6006 in your browser to view:
 
 
 ## Training Results
+### Training Results of AdamW
 ![Training Loss](./figures/training_loss.png)
 *Training loss decreases steadily over epochs, showing effective learning*
 ![Learning Rates](./figures/learning_rate.png)
 *Cosine annealing schedule provides smooth learning rate decay*
+### Comparison Between AdamW with Muon
+![Training Loss](./figures/adam_and_muon.png)
+- Muon converges much more fast. It attains a loss below 3.0 in less than 172 steps
+- Adam finds a better weight than Muon after 4000 steps
 
 ## References and Acknowledge
 - [Stanford CS336: Language Modeling from Scratch](https://stanford-cs336.github.io/spring2025/)

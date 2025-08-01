@@ -110,7 +110,7 @@ class MuonScheduler(_LRScheduler):
     @staticmethod
     def _get_lr_scale(step, num_iterations, cooldown_frac):
         x = step / num_iterations
-        assert 0.0 <= x <= 1.0
+        assert 0.0 <= x <= 1.0, f"step={step}, num_iterations={num_iterations}, x={x} not in range [0.0, 1.0]"
 
         if x < 1 - cooldown_frac:
             return 1.0

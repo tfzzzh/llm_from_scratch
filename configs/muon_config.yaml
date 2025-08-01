@@ -31,7 +31,6 @@ data:
 training:
   max_steps: 100000           # Maximum training steps
   eval_interval: 1000         # Steps between evaluations
-  save_interval: 5000         # Steps between checkpoints
   log_interval: 100           # Steps between logging
   grad_clip_norm: 1.0         # Gradient clipping max norm
   
@@ -53,8 +52,8 @@ scheduler:
   cooldown_frac: 0.4
 
 checkpointing:
-  checkpoint_dir: "outputs/checkpoints"        # Directory to save checkpoints
-  checkpoint_per_step: 1000                    # when steps % checkpoint_per_step == 0 perform checkpoint
+  checkpoint_dir: "outputs/checkpoints/muon"        # Directory to save checkpoints
+  checkpoint_per_step: 10000                    # when steps % checkpoint_per_step == 0 perform checkpoint
   resume_from: null                   # Path to checkpoint to resume from
 
 logger:
