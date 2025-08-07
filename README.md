@@ -6,7 +6,7 @@ This repository implement a Llamma2 like Large Language Model (LLM) from scratch
 + **Llama2-like Transformer Model** - Transformer architecture - see [`layers.py`](llm/layers.py)
 + **Flash Attention 2** - Flash Attention via Triton - see [`flash_attention.py`](llm/flash_attention.py)
 + **Data Parallel Distributed Training** - Partition data across processors, use all-reduce to synchronize gradients - see[`data_parallel_wrap.py`](llm/data_parallel_wrap.py)
-+ **AdamW Optimizer** - Weight decay regularized Adam optimizer - see [`adamw.py`](llm/optimizer/adamw.py)
++ **AdamW Optimizer** - Weight decay regularized Adam optimizer. I also implement **cpu offloading** strategy - see [`adamw.py`](llm/optimizer/adamw.py)
 + **Muon Optimizer** - Muon is a brandly new optimizer for hidden layers of neuron networks - see [`muon.py`](llm/optimizer/muon.py)
 + **Zero-1** - Distributed Optimizer which partition optimizer's inner state across nodes - see [`zero.py`](llm/optimizer/zero.py)
 + **Cosine Annealed Learning Rate Scheduler** - Learning rate scheduling - see [`lr_scheduler.py`](llm/lr_scheduler.py)
