@@ -12,6 +12,7 @@ class AdamW(torch.optim.Optimizer):
         weight_decay: float,
         betas: Tuple[float, float],
         eps: float,
+        cpu_off_loading: bool = False
     ):
         # check valid
         assert weight_decay >= 0
@@ -23,6 +24,7 @@ class AdamW(torch.optim.Optimizer):
         self.weight_decay = weight_decay
         self.betas = betas
         self.eps = eps
+        self.cpu_off_loading = cpu_off_loading
 
     def step(self, closure: Optional[Callable] = None):
         loss = None if closure is None else closure()
@@ -34,18 +36,29 @@ class AdamW(torch.optim.Optimizer):
                 if p.grad is None:
                     continue
 
+                # get device for parameter and device for state
+                device_param = p.device
+                device_state = device_param if not self.cpu_off_loading else torch.device("cpu")
+
                 # get states
                 grad = p.grad.data
+                grad = grad.to(torch.float32).to(device_state)
+
                 state = self.state[p]
-                t = state.get("t", 0)
-                #   make momentum to float32 for accuracy requirement
-                grad = grad.to(torch.float32)
-                m = state.get("m", torch.zeros_like(p, dtype=torch.float32))
-                v = state.get("v", torch.zeros_like(p, dtype=torch.float32))
+                # initialize state
+                # make momentum to float32 for accuracy requirement
+                if len(state) == 0:
+                    state["t"] = 0
+                    state["m"] = torch.zeros_like(p, dtype=torch.float32, device=device_state)
+                    state["v"] = torch.zeros_like(p, dtype=torch.float32, device=device_state)
+
+                t = state["t"]
+                m = state["m"]
+                v = state["v"]
 
                 # compute momentum & curvature
-                m = self.betas[0] * m + (1 - self.betas[0]) * grad
-                v = self.betas[1] * v + (1 - self.betas[1]) * grad * grad
+                m += (1.0 - self.betas[0]) * (grad - m)
+                v += (1.0 - self.betas[1]) * (grad.square() - v)
 
                 # compute lr at t
                 lr_t = (
@@ -56,13 +69,11 @@ class AdamW(torch.optim.Optimizer):
 
                 # update parameters
                 x = p.data.to(torch.float32)
-                x -= lr_t * (m / (torch.sqrt(v) + self.eps))
+                x -= lr_t * (m.to(device_param) / (torch.sqrt(v.to(device_param)) + self.eps))
                 x -= lr * self.weight_decay * x
                 p.data = x.to(p.data.dtype)
 
                 # update states
                 state["t"] = t + 1
-                state["m"] = m
-                state["v"] = v
 
         return loss
